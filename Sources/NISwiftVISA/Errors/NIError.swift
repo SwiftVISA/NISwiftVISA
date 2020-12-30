@@ -92,6 +92,7 @@ import CVISA
 /// - machineAccessDenied: Access to the remote machine is denied.
 /// - unknownCVISAError: An unknown CVISA error status was returned from a call to CVISA. The status of this code is stored in `status`.
 /// - couldNotDecode: Could not decode the message into the specified type.
+/// - couldNotEncode: Could not encode the message.
 /// - invalidRequestKey: The provided request key was invalid.
 /// - invalidInstrumentIdentifier: The provided instrument identifier did not adhere to the NI-VISA standard.
 /// - instrumentManagerCouldNotBeCreated: The `InstrumentManager.default` was not able to be created due to an unknown internal NI-VISA error.
@@ -182,6 +183,7 @@ public enum NIError: Error {
 	case unknownCVISAError (status: Int32)
 	// MARK: SwiftVISA Defined Errors
 	case couldNotDecode
+	case couldNotEncode
 	case invalidRequestKey
 	case invalidInstrumentIdentifier
 	case instrumentManagerCouldNotBeCreated

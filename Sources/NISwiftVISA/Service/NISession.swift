@@ -28,7 +28,7 @@ extension NISession {
 		withIdentifier identifier: String,
 		timeout: TimeInterval
 	) throws -> ViSession {
-		let instrumentManagerSession = try InstrumentManager.viSession.get()
+		let instrumentManagerSession = try InstrumentManager.niInstrumentManager.get().session
 		
 		var session = ViSession()
 		
@@ -52,31 +52,7 @@ extension NISession: Session {
 	}
 	
 	public func reconnect(timeout: TimeInterval) throws {
+		try close()
 		viSession = try Self.rawSession(withIdentifier: identifier, timeout: timeout)
-	}
-}
-
-extension InstrumentManager {
-	private static var _viSession: ViSession?
-	
-	static var viSession: Result<ViSession, NIError> {
-		if let session = _viSession {
-			return .success(session)
-		} else {
-			do {
-				let session = try makeViSession()
-				return .success(session)
-			} catch {
-				return .failure(error as! NIError)
-			}
-		}
-	}
-	
-	private static func makeViSession() throws -> ViSession {
-		var session = ViSession()
-		let status = try NIVISAXPCCommunicator.shared.viOpenDefaultRM(&session)
-		guard status >= VI_SUCCESS else { throw NIError(status) }
-		
-		return session
 	}
 }

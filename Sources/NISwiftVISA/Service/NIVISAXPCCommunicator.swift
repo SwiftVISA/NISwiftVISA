@@ -86,4 +86,44 @@ extension NIVISAXPCCommunicator {
 		
 		return returnData.status
 	}
+	
+	func viRead(
+		_ vi: ViSession,
+		_ buffer: inout [ViByte],
+		_ count: ViUInt32,
+		_ returnCount: ViPUInt32
+	) throws -> ViStatus {
+		let message = ViReadMessage(vi: vi, buffer: buffer, count: count, returnCount: returnCount.pointee)
+		
+		let returnData = try Message.viReadMessage(message).send()
+		
+		guard case .viReadMessage(let returnMessage) = returnData.message else {
+			throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Unknown decoding error"))
+		}
+		
+		buffer = returnMessage.buffer
+		returnCount.pointee = returnMessage.returnCount
+		
+		return returnData.status
+	}
+	
+	func viWrite(
+		_ vi: ViSession,
+		_ buffer: inout [ViByte],
+		_ count: ViUInt32,
+		_ returnCount: ViPUInt32
+	) throws -> ViStatus {
+		let message = ViWriteMessage(vi: vi, buffer: buffer, count: count, returnCount: returnCount.pointee)
+		
+		let returnData = try Message.viWriteMessage(message).send()
+		
+		guard case .viWriteMessage(let returnMessage) = returnData.message else {
+			throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Unknown decoding error"))
+		}
+		
+		buffer = returnMessage.buffer
+		returnCount.pointee = returnMessage.returnCount
+		
+		return returnData.status
+	}
 }
