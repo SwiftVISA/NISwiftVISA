@@ -13,12 +13,21 @@ class NIInstrumentManager {
 	
 	init() throws {
 		var session = ViSession()
-		let status: ViStatus
-		do {
-			status = try NIVISAXPCCommunicator.shared.viOpenDefaultRM(&session)
-		} catch {
+		var status = ViStatus()
+		
+		if NIVISAXPCCommunicator.shared.service == nil {
+			NIVISAXPCCommunicator.shared.reconnect()
+		}
+		
+		guard let service = NIVISAXPCCommunicator.shared.service else {
 			throw NIError.couldNotConnectToService
 		}
+		
+		service.openDefaultRM { statusReply, sessionReply in
+			status = statusReply
+			session = sessionReply
+		}
+		
 		guard status >= VI_SUCCESS else { throw NIError(status) }
 		
 		self.session = session

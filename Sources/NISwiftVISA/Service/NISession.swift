@@ -28,16 +28,17 @@ extension NISession {
 		withIdentifier identifier: String,
 		timeout: TimeInterval
 	) throws -> ViSession {
+		let service = try NIVISAXPCCommunicator.shared.assertServiceConnected()
+		
 		let instrumentManagerSession = try InstrumentManager.niInstrumentManager.get().session
 		
-		var session = ViSession()
+		var session: ViSession!
+		var status: ViStatus!
 		
-		let status = try NIVISAXPCCommunicator.shared.viOpen(
-			instrumentManagerSession,
-			identifier,
-			ViAccessMode(VI_NULL),
-			ViUInt32(1_000 * timeout),
-			&session)
+		service.open(session: instrumentManagerSession, resourceName: identifier, mode: ViAccessMode(VI_NULL), timeout: ViUInt32(1_000 * timeout)) { (statusReply, sessionReply) in
+			session = sessionReply
+			status = statusReply
+		}
 		
 		guard status >= VI_SUCCESS else { throw NIError(status) }
 		
@@ -47,7 +48,14 @@ extension NISession {
 
 extension NISession: Session {
 	public func close() throws {
-		let status = try NIVISAXPCCommunicator.shared.viClose(viSession)
+		let service = try NIVISAXPCCommunicator.shared.assertServiceConnected()
+		
+		var status: ViStatus!
+		
+		service.close(vi: viSession) { (statusReply) in
+			status = statusReply
+		}
+		
 		guard status >= VI_SUCCESS else { throw NIError(status) }
 	}
 	

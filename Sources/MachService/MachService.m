@@ -9,29 +9,31 @@
 
 @implementation MachService
 
-+ (SInt32) sendRequestToRemoteWithName:(NSString *)remoteName messageID:(SInt32)messageID data:(NSData *)data sendTimeout:(CFTimeInterval)sendTimeout returnData:(NSData *_Nullable *_Nullable) returnData
++ (NSData *_Nullable) sendRequestToRemoteWithName:(NSString *)remoteName messageID:(SInt32)messageID data:(NSData *)data sendTimeout:(CFTimeInterval)sendTimeout returnCode:(SInt32 *_Nonnull)returnCode
 {
-	@autoreleasepool {
-		CFMessagePortRef remote = CFMessagePortCreateRemote(nil, (__bridge CFStringRef) remoteName);
-		
-		CFDataRef rawReturnData = NULL;
-		CFDataRef rawData = (__bridge CFDataRef) data;
-		
-		SInt32 result = CFMessagePortSendRequest(remote,
-																						 messageID,
-																						 rawData,
-																						 sendTimeout,
-																						 sendTimeout,
-																						 kCFRunLoopDefaultMode,
-																						 &rawReturnData);
-		
-		if (result == kCFMessagePortSuccess && rawReturnData != NULL) {
-			*returnData = (__bridge NSData * _Nullable) rawReturnData;
-		}
-		
-		CFRelease(rawData);
-		
-		return result;
+	CFMessagePortRef remote = CFMessagePortCreateRemote(nil, (__bridge CFStringRef) remoteName);
+	
+	CFDataRef rawReturnData = NULL;
+	CFDataRef rawData = (__bridge CFDataRef) data;
+	
+	SInt32 result = CFMessagePortSendRequest(remote,
+																					 messageID,
+																					 rawData,
+																					 sendTimeout,
+																					 sendTimeout,
+																					 kCFRunLoopDefaultMode,
+																					 &rawReturnData);
+	
+	*returnCode = result;
+	
+	CFRelease(rawData);
+	CFRelease(remote);
+	CFRetain(rawReturnData);
+	
+	if (result == kCFMessagePortSuccess && rawReturnData != NULL) {
+		return (__bridge NSData * _Nullable) rawReturnData;
+	} else {
+		return nil;
 	}
 }
 

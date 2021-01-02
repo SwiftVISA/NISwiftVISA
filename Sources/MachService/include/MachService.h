@@ -13,7 +13,7 @@
 
 @interface MachService : NSObject
 
-+ (SInt32) sendRequestToRemoteWithName:(NSString *_Nonnull)remoteName messageID:(SInt32)messageID data:(NSData *_Nonnull)data sendTimeout:(CFTimeInterval)sendTimeout returnData:(NSData *_Nullable *_Nullable) returnData;
++ (NSData *_Nullable) sendRequestToRemoteWithName:(NSString *_Nonnull)remoteName messageID:(SInt32)messageID data:(NSData *_Nonnull)data sendTimeout:(CFTimeInterval)sendTimeout returnCode:(SInt32 *_Nonnull)returnCode;
 
 @end
 

@@ -15,6 +15,7 @@ final class NIMessageBasedInstrumentTests: XCTestCase {
 	
 	override class func setUp() {
 		let im = InstrumentManager.shared
+		im.connectionTimeout = 10.0
 		
 		do {
 			usbInstrument = try im.niInstrument(withIdentifier: usbInstrumentIdentifier)
@@ -30,7 +31,13 @@ final class NIMessageBasedInstrumentTests: XCTestCase {
 	}
 	
 	func testRead() {
+		let command = "VOLTAGE?"
 		
+		do {
+			_ = try Self.usbInstrument?.query(command, as: Double.self)
+		} catch {
+			XCTFail()
+		}
 	}
 	
 	func testWrite() {
