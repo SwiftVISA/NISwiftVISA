@@ -55,6 +55,7 @@ extension NIMessageBasedInstrument: MessageBasedInstrument {
 				bytesRead = bytesReadReply
 			}
 			
+			guard status != nil else { throw NIError.couldNotConnectToService }
 			guard status == VI_SUCCESS else {
 				throw NIError(status)
 			}
@@ -95,6 +96,7 @@ extension NIMessageBasedInstrument: MessageBasedInstrument {
 				bytesRead = bytesReadReply
 			}
 			
+			guard status != nil else { throw NIError.couldNotConnectToService }
 			guard status == VI_SUCCESS else {
 				throw NIError(status)
 			}
@@ -154,6 +156,7 @@ extension NIMessageBasedInstrument: MessageBasedInstrument {
 			returnCount = returnCountReply
 		}
 		
+		guard status != nil else { throw NIError.couldNotConnectToService }
 		guard status == VI_SUCCESS else {
 			throw NIError(status)
 		}
@@ -175,6 +178,7 @@ extension NIMessageBasedInstrument: MessageBasedInstrument {
 			returnCount = returnCountReply
 		}
 		
+		guard status != nil else { throw NIError.couldNotConnectToService }
 		guard status == VI_SUCCESS else {
 			throw NIError(status)
 		}

@@ -24,16 +24,20 @@ final class NIVISAXPCCommunicator {
 		connection.remoteObjectInterface = NSXPCInterface(with: VISAXPCProtocol.self)
 		connection.resume()
 		
-		connection.interruptionHandler = {
+		connection.interruptionHandler = { [weak self] in
 			print("Service interupted.")
+			self?.service = nil
 		}
 
-		connection.invalidationHandler = {
+		connection.invalidationHandler = { [weak self] in
 			print("Service invalidated")
+			self?.service = nil
 		}
 		
-		service = connection.synchronousRemoteObjectProxyWithErrorHandler { error in
+		service = connection.synchronousRemoteObjectProxyWithErrorHandler { [weak self] error in
 			print("Error establishing synchronous remote object proxy: \(error)")
+			self?.service = nil
+			
 		} as? VISAXPCProtocol
 	}
 	
@@ -44,10 +48,6 @@ final class NIVISAXPCCommunicator {
 	}
 	
 	func assertServiceConnected() throws -> VISAXPCProtocol {
-		if service == nil {
-			reconnect()
-		}
-		
 		guard let service = service else {
 			throw NIError.couldNotConnectToService
 		}

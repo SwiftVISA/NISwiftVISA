@@ -40,6 +40,7 @@ extension NISession {
 			status = statusReply
 		}
 		
+		guard status != nil else { throw NIError.couldNotConnectToService }
 		guard status >= VI_SUCCESS else { throw NIError(status) }
 		
 		return session
@@ -56,6 +57,7 @@ extension NISession: Session {
 			status = statusReply
 		}
 		
+		guard status != nil else { throw NIError.couldNotConnectToService }
 		guard status >= VI_SUCCESS else { throw NIError(status) }
 	}
 	
