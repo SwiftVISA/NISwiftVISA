@@ -36,8 +36,6 @@ extension NIMessageBasedInstrument: MessageBasedInstrument {
 	}
 	
 	public func readBytes(length: Int, chunkSize: Int) throws -> Data {
-		let service = try NIVISAXPCCommunicator.shared.assertServiceConnected()
-		
 		var data = Data(capacity: max(length, chunkSize))
 		
 		repeat {
@@ -45,20 +43,21 @@ extension NIMessageBasedInstrument: MessageBasedInstrument {
 			
 			usleep(useconds_t(attributes.operationDelay * 1_000_000.0))
 			
-			var status: ViStatus!
 			var chunk: Data!
 			var bytesRead: ViUInt32!
 			
-			service.read(vi: _session.viSession, count: bytesToRead) { (statusReply, chunkReply, bytesReadReply) in
-				status = statusReply
-				chunk = chunkReply
-				bytesRead = bytesReadReply
-			}
-			
-			guard status != nil else { throw NIError.couldNotConnectToService }
-			guard status == VI_SUCCESS else {
-				throw NIError(status)
-			}
+			try NIVISAXPCCommunicator.shared
+				.assertingServiceConnected { (service, status) -> ViStatus in
+					var status = status
+					
+					service.read(vi: _session.viSession, count: bytesToRead) { (statusReply, chunkReply, bytesReadReply) in
+						status = statusReply
+						chunk = chunkReply
+						bytesRead = bytesReadReply
+					}
+					
+					return status
+				}
 			
 			data.append(chunk)
 			
@@ -77,8 +76,6 @@ extension NIMessageBasedInstrument: MessageBasedInstrument {
 		strippingTerminator: Bool,
 		chunkSize: Int
 	) throws -> Data {
-		let service = try NIVISAXPCCommunicator.shared.assertServiceConnected()
-		
 		var data = Data(capacity: max(maxLength ?? chunkSize, chunkSize))
 		
 		repeat {
@@ -88,18 +85,19 @@ extension NIMessageBasedInstrument: MessageBasedInstrument {
 			
 			var chunk: Data!
 			var bytesRead: ViUInt32!
-			var status: ViStatus!
 			
-			service.read(vi: _session.viSession, count: bytesToRead) { (statusReply, chunkReply, bytesReadReply) in
-				status = statusReply
-				chunk = chunkReply
-				bytesRead = bytesReadReply
-			}
-			
-			guard status != nil else { throw NIError.couldNotConnectToService }
-			guard status == VI_SUCCESS else {
-				throw NIError(status)
-			}
+			try NIVISAXPCCommunicator.shared
+				.assertingServiceConnected() { (service, status) -> ViStatus in
+					var status = status
+					
+					service.read(vi: _session.viSession, count: bytesToRead) { (statusReply, chunkReply, bytesReadReply) in
+						status = statusReply
+						chunk = chunkReply
+						bytesRead = bytesReadReply
+					}
+					
+					return status
+				}
 			
 			if let maxLength = maxLength {
 				if data.count + Int(bytesRead) >= maxLength {
@@ -139,49 +137,48 @@ extension NIMessageBasedInstrument: MessageBasedInstrument {
 		_ string: String,
 		appending terminator: String?,
 		encoding: String.Encoding
-	) throws {
-		let service = try NIVISAXPCCommunicator.shared.assertServiceConnected()
-		
+	) throws -> Int {
 		guard let data = string.data(using: encoding) else {
 			throw NIError.couldNotEncode
 		}
 		
 		var returnCount: ViUInt32!
-		var status: ViStatus!
 		
 		usleep(useconds_t(attributes.operationDelay * 1_000_000.0))
 		
-		service.write(vi: _session.viSession, data: data) { (statusReply, returnCountReply) in
-			status = statusReply
-			returnCount = returnCountReply
-		}
+		try NIVISAXPCCommunicator.shared
+			.assertingServiceConnected() { (service, status) -> ViStatus in
+				var status = status
+				
+				service.write(vi: _session.viSession, data: data) { (statusReply, returnCountReply) in
+					status = statusReply
+					returnCount = returnCountReply
+				}
+				
+				return status
+			}
 		
-		guard status != nil else { throw NIError.couldNotConnectToService }
-		guard status == VI_SUCCESS else {
-			throw NIError(status)
-		}
+		return Int(returnCount)
 	}
 	
 	public func writeBytes(_ data: Data, appending terminator: Data?) throws -> Int {
-		let service = try NIVISAXPCCommunicator.shared.assertServiceConnected()
-		
 		let data = data + (terminator ?? Data())
-		var message = Array<ViByte>(data)
-			
+		
 		usleep(useconds_t(attributes.operationDelay * 1_000_000.0))
 		
-		var status: ViStatus!
 		var returnCount: ViUInt32!
 		
-		service.write(vi: _session.viSession, data: data) { (statusReply, returnCountReply) in
-			status = statusReply
-			returnCount = returnCountReply
-		}
-		
-		guard status != nil else { throw NIError.couldNotConnectToService }
-		guard status == VI_SUCCESS else {
-			throw NIError(status)
-		}
+		try NIVISAXPCCommunicator.shared
+			.assertingServiceConnected { (service, status) -> ViStatus in
+				var status = status
+				
+				service.write(vi: _session.viSession, data: data) { (statusReply, returnCountReply) in
+					status = statusReply
+					returnCount = returnCountReply
+				}
+				
+				return status
+			}
 		
 		return Int(returnCount)
 	}

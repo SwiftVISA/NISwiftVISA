@@ -28,20 +28,21 @@ extension NISession {
 		withIdentifier identifier: String,
 		timeout: TimeInterval
 	) throws -> ViSession {
-		let service = try NIVISAXPCCommunicator.shared.assertServiceConnected()
-		
 		let instrumentManagerSession = try InstrumentManager.niInstrumentManager.get().session
 		
 		var session: ViSession!
-		var status: ViStatus!
 		
-		service.open(session: instrumentManagerSession, resourceName: identifier, mode: ViAccessMode(VI_NULL), timeout: ViUInt32(1_000 * timeout)) { (statusReply, sessionReply) in
-			session = sessionReply
-			status = statusReply
+		try NIVISAXPCCommunicator.shared
+			.assertingServiceConnected { (service, status) -> ViStatus in
+			var status = status
+			
+			service.open(session: instrumentManagerSession, resourceName: identifier, mode: ViAccessMode(VI_NULL), timeout: ViUInt32(1_000 * timeout)) { (statusReply, sessionReply) in
+				session = sessionReply
+				status = statusReply
+			}
+			
+			return status
 		}
-		
-		guard status != nil else { throw NIError.couldNotConnectToService }
-		guard status >= VI_SUCCESS else { throw NIError(status) }
 		
 		return session
 	}
@@ -49,16 +50,16 @@ extension NISession {
 
 extension NISession: Session {
 	public func close() throws {
-		let service = try NIVISAXPCCommunicator.shared.assertServiceConnected()
-		
-		var status: ViStatus!
-		
-		service.close(vi: viSession) { (statusReply) in
-			status = statusReply
+		try NIVISAXPCCommunicator.shared
+			.assertingServiceConnected { (service, status) -> ViStatus in
+			var status = status
+			
+			service.close(vi: viSession) { (statusReply) in
+				status = statusReply
+			}
+			
+			return status
 		}
-		
-		guard status != nil else { throw NIError.couldNotConnectToService }
-		guard status >= VI_SUCCESS else { throw NIError(status) }
 	}
 	
 	public func reconnect(timeout: TimeInterval) throws {

@@ -6,29 +6,27 @@
 //
 
 import CoreSwiftVISA
+import NISwiftVISAServiceMessages
 import CVISA
 
 class NIInstrumentManager {
 	var session: ViSession
 	
 	init() throws {
-		var session = ViSession()
-		var status = ViStatus()
 		
-		if NIVISAXPCCommunicator.shared.service == nil {
-			NIVISAXPCCommunicator.shared.reconnect()
-		}
+		var session: ViSession!
 		
-		guard let service = NIVISAXPCCommunicator.shared.service else {
-			throw NIError.couldNotConnectToService
-		}
-		
-		service.openDefaultRM { statusReply, sessionReply in
-			status = statusReply
-			session = sessionReply
-		}
-		
-		guard status >= VI_SUCCESS else { throw NIError(status) }
+		try NIVISAXPCCommunicator.shared
+			.assertingServiceConnected() { (service: VISAXPCProtocol, status: ViStatus) -> ViStatus in
+				var status = status
+				
+				service.openDefaultRM { (statusReply, sessionReply) in
+					status = statusReply
+					session = sessionReply
+				}
+				
+				return status
+			}
 		
 		self.session = session
 	}

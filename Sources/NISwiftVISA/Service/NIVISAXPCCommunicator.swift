@@ -7,6 +7,7 @@
 
 import Foundation
 import NISwiftVISAServiceMessages
+import CVISA
 
 final class NIVISAXPCCommunicator {
 	static var shared = NIVISAXPCCommunicator()
@@ -28,7 +29,7 @@ final class NIVISAXPCCommunicator {
 			print("Service interupted.")
 			self?.service = nil
 		}
-
+		
 		connection.invalidationHandler = { [weak self] in
 			print("Service invalidated")
 			self?.service = nil
@@ -47,11 +48,17 @@ final class NIVISAXPCCommunicator {
 		connect()
 	}
 	
-	func assertServiceConnected() throws -> VISAXPCProtocol {
+	func assertingServiceConnected(
+		perform task: (VISAXPCProtocol, ViStatus) throws -> ViStatus
+	) throws {
 		guard let service = service else {
+			reconnect()
 			throw NIError.couldNotConnectToService
 		}
 		
-		return service
+		let nilStatus: ViStatus = -0x7777
+		let status = try task(service, nilStatus)
+		
+		guard status != nilStatus else { throw NIError.couldNotConnectToService }
 	}
 }
