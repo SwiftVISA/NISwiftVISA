@@ -1,12 +1,11 @@
 //
 //  CVISAErrorCodes.swift
-//  SwiftVISA
+//
 //
 //  Created by Connor Barnes on 5/16/19.
-//  Copyright © 2019 SwiftVISA. All rights reserved.
 //
 
-import CVISA
+import CVISATypes
 
 let VI_ERROR_SYSTEM_ERROR: ViStatus = -0x40010000
 let VI_ERROR_INV_OBJECT: ViStatus = -0x4000FFF2

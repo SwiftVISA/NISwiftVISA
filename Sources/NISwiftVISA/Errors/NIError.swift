@@ -1,12 +1,11 @@
 //
 //  VISAError.swift
-//  SwiftVISA
+//
 //
 //  Created by Connor Barnes on 5/28/19.
-//  Copyright © 2019 SwiftVISA. All rights reserved.
-//
+// 
 
-import CVISA
+import CVISATypes
 
 /// An error that can be thrown by NI-VISA.
 ///

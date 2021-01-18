@@ -1,18 +1,20 @@
 //
-//  File.swift
+//  NIMessageBasedInstrument.swift
 //  
 //
 //  Created by Connor Barnes on 12/30/20.
 //
 
 import CoreSwiftVISA
-import CVISA
+import CVISATypes
 import Foundation
 
+/// A message-based instrument managed by the NI-VISA backend.
 public class NIMessageBasedInstrument: NIInstrument {
 	
 }
 
+// MARK:- MessageBasedInstrument
 extension NIMessageBasedInstrument: MessageBasedInstrument {
 	public func read(
 		until terminator: String,
