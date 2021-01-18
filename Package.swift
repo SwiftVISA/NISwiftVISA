@@ -1,10 +1,10 @@
-// swift-tools-version:5.0
+// swift-tools-version:5.3
 
 import PackageDescription
 
 let package = Package(
 	name: "NISwiftVISA",
-	platforms: [.macOS(.v10_11)],
+	platforms: [.macOS(.v11)],
 	products: [
 		.library(
 			name: "NISwiftVISA",
