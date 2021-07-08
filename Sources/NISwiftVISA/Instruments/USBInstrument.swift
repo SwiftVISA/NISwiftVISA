@@ -11,17 +11,18 @@ import Foundation
 
 /// An instrument connected over USB and managed by the NI-VISA backend.
 public final class USBInstrument: NIMessageBasedInstrument {
-	/// Creates an instrument with the given VISA resource name and timeout.
-	/// - Parameters:
-	///   - identifier: The VISA resource name.
-	///   - timeout: The amount of time (in seconds) to try to connect to the instrument before failing.
-	/// - Throws: If the instrument could not be created.
-	required init(identifier: String, timeout: TimeInterval) throws {
-		guard identifier.hasPrefix("USB"),
-					identifier.hasSuffix("::INSTR")
-		else {
-			throw NIError.invalidResourceName
-		}
-		try super.init(identifier: identifier, timeout: timeout)
-	}
+	override class func make(identifier: String, timeout: TimeInterval) async throws -> Self {
+    guard identifier.hasPrefix("USB"),
+          identifier.hasSuffix("::INSTR")
+    else {
+      throw NIError.invalidResourceName
+    }
+    
+    let session = try await NISession(identifier: identifier, timeout: timeout)
+    return .init(session: session)
+  }
+  
+  required init(session: NISession) {
+    super.init(session: session)
+  }
 }

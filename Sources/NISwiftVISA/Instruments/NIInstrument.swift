@@ -14,15 +14,23 @@ public class NIInstrument {
 	var _session: NISession
 	
 	public var attributes = MessageBasedInstrumentAttributes()
-	/// Creates an instrument from the given identifier and the maximum timout value.
-	/// - Parameters:
-	///   - identifier: The VISA resource identifier.
-	///   - timeout: The maximum amount of time to try to connect to the instrument before failing.
-	/// - Throws: If the instrument could not be created.
-	required init(identifier: String, timeout: TimeInterval) throws {
-		// TODO: Set the instrument timeout
-		_session = try .init(identifier: identifier, timeout: timeout)
-	}
+  
+  // TODO: Replace the required init(session:) initializer with init(identifier:timeout:). Currently this crashes Swift
+  
+	/// Creates an instrument from the given identifier and the maximum timeout value.
+  /// - Parameters:
+  ///   - identifier: The VISA resource identifier.
+  ///   - timeout: The maximum amount of time to try to connect to the instrument before failing.
+  /// - Returns: The created instrument.
+  class func make(identifier: String, timeout: TimeInterval) async throws -> Self {
+    // TODO: Set the instrument timeout
+    let session = try await NISession(identifier: identifier, timeout: timeout)
+    return .init(session: session)
+  }
+  
+  required init(session: NISession) {
+    _session = session
+  }
 }
 
 extension NIInstrument: Instrument {
@@ -32,14 +40,15 @@ extension NIInstrument: Instrument {
 }
 
 extension InstrumentManager {
-	/// A type contining the VISA identifier prefix and suffix.
+	/// A type containing the VISA identifier prefix and suffix.
 	private struct Identifier: Hashable {
 		/// The prefix of the identifier.
 		var prefix: String
 		/// The suffix of the identifier.
 		var suffix: String
 	}
-	/// A dictionary mapping resource identifiers to insturment type.
+  
+	/// A dictionary mapping resource identifiers to instrument type.
 	private static let classMapping: [Identifier : NIInstrument.Type] = [
 		// The commented out lines represent instruments that are not *yet* supported
 //		Identifier(prefix: "ASRL", suffix: "::INSTR") : SerialInstrument.self,
@@ -56,9 +65,10 @@ extension InstrumentManager {
 //		Identifier(prefix: "VXI", suffix: "::MEMACC") : VXIMemory.self,
 //		Identifier(prefix: "VXI", suffix: "::BACKPLANE") : VXIBackplane.self
 	]
+  
 	/// Returns the type of instrument from the instrument's VISA identifier.
 	/// - Parameter identifier: The VISA resource identifier.
-	/// - Throws: If the insturment class could not be determined or is not supported.
+	/// - Throws: If the instrument class could not be determined or is not supported.
 	/// - Returns: The type of instrument.
 	private static func instrumentClass(
 		forNIIdentifier identifier: String
@@ -71,6 +81,7 @@ extension InstrumentManager {
 		
 		return type
 	}
+  
 	/// Creates an instrument using the NI-VISA backend.
 	/// - Parameters:
 	///   - identifier: The VISA resource name.
@@ -80,11 +91,10 @@ extension InstrumentManager {
 	public func niInstrument(
 		withIdentifier identifier: String,
 		timeout: TimeInterval? = nil
-	) throws -> NIInstrument {
+	) async throws -> NIInstrument {
 		let InstrumentClass = try Self.instrumentClass(forNIIdentifier: identifier)
 		
-		return try InstrumentClass.init(identifier: identifier,
-																		timeout: timeout ?? connectionTimeout)
+		return try await InstrumentClass.make(identifier: identifier,
+                                          timeout: timeout ?? connectionTimeout)
 	}
 }
-

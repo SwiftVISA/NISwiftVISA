@@ -14,56 +14,52 @@ public class NIMessageBasedInstrument: NIInstrument {
 	
 }
 
-// MARK:- MessageBasedInstrument
+// MARK: - MessageBasedInstrument
 extension NIMessageBasedInstrument: MessageBasedInstrument {
 	public func read(
 		until terminator: String,
 		strippingTerminator: Bool,
 		encoding: String.Encoding,
 		chunkSize: Int
-	) throws -> String {
+	) async throws -> String {
 		guard let terminatorData = terminator.data(using: encoding) else {
-			throw NIError.couldNotDecode
-		}
-		let data = try readBytes(maxLength: nil,
-														 until: terminatorData,
-														 strippingTerminator: strippingTerminator,
-														 chunkSize: chunkSize)
-		
-		guard let string = String(data: data, encoding: encoding) else {
-			throw NIError.couldNotDecode
-		}
+      throw NIError.couldNotDecode
+    }
+    
+    let data = try await readBytes(
+      maxLength: nil,
+      until: terminatorData,
+      strippingTerminator: strippingTerminator,
+      chunkSize: chunkSize
+    )
+    
+    guard let string = String(data: data, encoding: encoding) else {
+      throw NIError.couldNotDecode
+    }
 		
 		return string
 	}
 	
-	public func readBytes(length: Int, chunkSize: Int) throws -> Data {
+	public func readBytes(length: Int, chunkSize: Int) async throws -> Data {
 		var data = Data(capacity: max(length, chunkSize))
 		
 		repeat {
-			let bytesToRead = ViUInt32(min(chunkSize, length - data.count))
-			
-			usleep(useconds_t(attributes.operationDelay * 1_000_000.0))
-			
+      await Task.sleep(UInt64(attributes.operationDelay * 1_000_000_000))
+      
+      let bytesToRead = ViUInt32(min(chunkSize, length - data.count))
 			var chunk: Data!
 			var bytesRead: ViUInt32!
 			
-			try NIVISAXPCCommunicator.shared
+			try await NIVISAXPCCommunicator.shared
 				.assertingServiceConnected { (service, status) -> ViStatus in
 					var status = status
-					
-					service.read(vi: _session.viSession, count: bytesToRead) { (statusReply, chunkReply, bytesReadReply) in
-						status = statusReply
-						chunk = chunkReply
-						bytesRead = bytesReadReply
-					}
-					
+					(status, chunk, bytesRead) = await service.read(vi: _session.viSession, count: bytesToRead)
 					return status
 				}
 			
 			data.append(chunk)
 			
-			if bytesRead == 0{
+			if bytesRead == 0 {
 				// No more data to read
 				return data
 			}
@@ -77,27 +73,20 @@ extension NIMessageBasedInstrument: MessageBasedInstrument {
 		until terminator: Data,
 		strippingTerminator: Bool,
 		chunkSize: Int
-	) throws -> Data {
+	) async throws -> Data {
 		var data = Data(capacity: max(maxLength ?? chunkSize, chunkSize))
 		
 		repeat {
-			let bytesToRead = ViUInt32(chunkSize)
-			
-			usleep(useconds_t(attributes.operationDelay * 1_000_000.0))
-			
+      await Task.sleep(UInt64(attributes.operationDelay * 1_000_000_000))
+      
+      let bytesToRead = ViUInt32(chunkSize)
 			var chunk: Data!
 			var bytesRead: ViUInt32!
 			
-			try NIVISAXPCCommunicator.shared
+			try await NIVISAXPCCommunicator.shared
 				.assertingServiceConnected() { (service, status) -> ViStatus in
 					var status = status
-					
-					service.read(vi: _session.viSession, count: bytesToRead) { (statusReply, chunkReply, bytesReadReply) in
-						status = statusReply
-						chunk = chunkReply
-						bytesRead = bytesReadReply
-					}
-					
+					(status, chunk, bytesRead) = await service.read(vi: _session.viSession, count: bytesToRead)
 					return status
 				}
 			
@@ -123,7 +112,8 @@ extension NIMessageBasedInstrument: MessageBasedInstrument {
 		if let range = data.range(of: terminator, options: .backwards) {
 			let distance = data.distance(
 				from: data.startIndex,
-				to: strippingTerminator ? range.startIndex : range.endIndex)
+				to: strippingTerminator ? range.startIndex : range.endIndex
+      )
 			let endIndex = min(maxLength ?? .max, distance)
 			return data[..<endIndex]
 		}
@@ -139,50 +129,37 @@ extension NIMessageBasedInstrument: MessageBasedInstrument {
 		_ string: String,
 		appending terminator: String?,
 		encoding: String.Encoding
-	) throws -> Int {
+	) async throws -> Int {
 		guard let data = string.data(using: encoding) else {
 			throw NIError.couldNotEncode
 		}
 		
+    await Task.sleep(UInt64(attributes.operationDelay * 1_000_000_000))
+    var returnCount: ViUInt32!
+    
+    try await NIVISAXPCCommunicator.shared
+      .assertingServiceConnected() { (service, status) -> ViStatus in
+        var status = status
+        (status, returnCount) = await service.write(vi: _session.viSession, data: data)
+        return status
+      }
+    
+    return Int(returnCount)
+  }
+  
+	public func writeBytes(_ data: Data, appending terminator: Data?) async throws -> Int {
+    await Task.sleep(UInt64(attributes.operationDelay * 1_000_000_000))
+    
+    let data = data + (terminator ?? Data())
 		var returnCount: ViUInt32!
 		
-		usleep(useconds_t(attributes.operationDelay * 1_000_000.0))
-		
-		try NIVISAXPCCommunicator.shared
-			.assertingServiceConnected() { (service, status) -> ViStatus in
-				var status = status
-				
-				service.write(vi: _session.viSession, data: data) { (statusReply, returnCountReply) in
-					status = statusReply
-					returnCount = returnCountReply
-				}
-				
-				return status
-			}
-		
-		return Int(returnCount)
-	}
-	
-	public func writeBytes(_ data: Data, appending terminator: Data?) throws -> Int {
-		let data = data + (terminator ?? Data())
-		
-		usleep(useconds_t(attributes.operationDelay * 1_000_000.0))
-		
-		var returnCount: ViUInt32!
-		
-		try NIVISAXPCCommunicator.shared
+		try await NIVISAXPCCommunicator.shared
 			.assertingServiceConnected { (service, status) -> ViStatus in
 				var status = status
-				
-				service.write(vi: _session.viSession, data: data) { (statusReply, returnCountReply) in
-					status = statusReply
-					returnCount = returnCountReply
-				}
-				
+				(status, returnCount) = await service.write(vi: _session.viSession, data: data)
 				return status
 			}
 		
 		return Int(returnCount)
 	}
 }
-
